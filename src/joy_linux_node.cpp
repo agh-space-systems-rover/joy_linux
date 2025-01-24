@@ -38,16 +38,16 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <diagnostic_updater/diagnostic_updater.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/joy.hpp>
-#include <sensor_msgs/msg/joy_feedback_array.hpp>
-
 #include <chrono>
 #include <functional>
 #include <future>
 #include <memory>
 #include <string>
+
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/joy.hpp>
+#include <sensor_msgs/msg/joy_feedback_array.hpp>
 
 /// \brief Opens, reads from and publishes joystick events
 class Joystick
@@ -142,8 +142,7 @@ private:
 
       close(joy_fd);
 
-      // RCLCPP_INFO(logger, "Found joystick: %s (%s).", current_joy_name, current_path.c_str());
-
+      // Check if the joystick device name contains joy_name, if so return the path.
       std::string current_joy_name_str(current_joy_name);
       if (current_joy_name_str.find(joy_name) != std::string::npos) {
         closedir(dev_dir);
@@ -323,9 +322,13 @@ public:
         }
 
         if (joy_fd != -1) {
+          // Reset first_fault so that in case connection is lost,
+          // the first retry will run immediately.
+          first_fault = true;
           break;
         }
         if (first_fault) {
+          // Send a differently worded log message if dev_name was specified.
           if (!joy_dev_name_.empty()) {
               RCLCPP_ERROR(
                     node_->get_logger(), "Couldn't find a joystick with name containing %s. Will retry every second.",
